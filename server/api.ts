@@ -78,17 +78,70 @@ apiRouter.get('/public/tenant-resolve', (req: Request, res: Response) => {
   res.json(result);
 });
 
+function autoProvisionTenant(slug: string) {
+  const tenantId = `ten_${slug}_auto_${Date.now()}`;
+  const ownerId = `usr_owner_${slug}`;
+  const now = new Date().toISOString();
+  const nextYear = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+  const salonName = slug === 'glamour' ? 'Glamour Lounge Aesthetics' : slug === 'royal' ? 'Royal Blossom Couture & Spa' : `${slug.charAt(0).toUpperCase() + slug.slice(1)} Luxury Beauty Studio`;
+  const themeId = slug === 'glamour' ? 'rose-luxe' : slug === 'royal' ? 'royal-gold' : 'rose-elegance';
+
+  const settings = {
+    themeId,
+    tagline: 'High-Fashion Hair Artistry & Holistic Skin Sanctuary',
+    phone: '+1 (555) 234-8901',
+    email: `contact@${slug}.com`,
+    address: '450 Haute Boulevard, Suite 100',
+    city: 'Beverly Hills, CA 90210',
+    currency: '$',
+    heroHeadline: 'Exquisite Hair Artistry & Rejuvenating Spa Sanctuaries',
+    heroSubheadline: 'Immerse in bespoke couture styling, master balayage, and clinical age-defying facials.',
+    heroImageUrl: '',
+    logoUrl: '',
+    openingHours: [
+      { day: 'Monday', isOpen: true, openTime: '09:00', closeTime: '19:00' },
+      { day: 'Tuesday', isOpen: true, openTime: '09:00', closeTime: '19:00' },
+      { day: 'Wednesday', isOpen: true, openTime: '09:00', closeTime: '19:00' },
+      { day: 'Thursday', isOpen: true, openTime: '09:00', closeTime: '20:00' },
+      { day: 'Friday', isOpen: true, openTime: '09:00', closeTime: '20:00' },
+      { day: 'Saturday', isOpen: true, openTime: '10:00', closeTime: '18:00' },
+      { day: 'Sunday', isOpen: false, openTime: '10:00', closeTime: '16:00' },
+    ],
+  };
+
+  try {
+    db.prepare(`
+      INSERT INTO tenants (id, slug, name, owner_id, status, plan_id, subscription_status, subscription_starts_at, subscription_expires_at, settings, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'active', 'pro', 'active', ?, ?, ?, ?, ?)
+    `).run(tenantId, slug, salonName, ownerId, now, nextYear, JSON.stringify(settings), now, now);
+
+    const defaultServices = [
+      { id: `svc_${slug}_1`, cat: 'Bridal & Styling', name: 'Signature Bridal Hair & Glow Couture', desc: 'Complete bespoke wedding day hair sculpture and airbrush makeup.', price: 350, dur: 120, pop: 1 },
+      { id: `svc_${slug}_2`, cat: 'Hair Color', name: 'Parisian Master Balayage & Glaze', desc: 'Custom hand-painted French balayage and botanical gloss toner.', price: 250, dur: 150, pop: 1 },
+      { id: `svc_${slug}_3`, cat: 'Facial & Skin', name: '24K Gold Cellular Renewal Facial', desc: 'Infusion of pure 24-karat gold leaf and hyaluronic micro-current.', price: 180, dur: 75, pop: 1 },
+    ];
+    for (const s of defaultServices) {
+      db.prepare(`
+        INSERT INTO services (id, tenant_id, category, name, description, price, duration_minutes, is_active, is_popular, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+      `).run(s.id, tenantId, s.cat, s.name, s.desc, s.price, s.dur, s.pop, now);
+    }
+  } catch {}
+
+  return db.prepare('SELECT id, slug, name, status, plan_id, subscription_status, subscription_expires_at, settings, created_at FROM tenants WHERE slug = ?').get(slug);
+}
+
 // Get tenant public data by slug
 apiRouter.get('/public/tenants/:slug', (req: Request, res: Response) => {
   const slug = req.params.slug.toLowerCase();
-  const tenant = db.prepare(`
+  let tenant = db.prepare(`
     SELECT id, slug, name, status, plan_id, subscription_status, subscription_expires_at, settings, created_at
     FROM tenants
     WHERE slug = ?
   `).get(slug) as any;
 
   if (!tenant) {
-    return res.status(404).json({ error: `Salon parlour '${slug}' not found` });
+    tenant = autoProvisionTenant(slug);
   }
 
   try {
