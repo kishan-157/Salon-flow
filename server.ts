@@ -2,18 +2,18 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { initDatabase } from './server/db.ts';
+import { initFirestore } from './server/db.ts';
 import { apiRouter } from './server/api.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
-  // Initialize database schema and data
+  // Initialize Firebase Firestore collections & seed data
   try {
-    initDatabase();
+    await initFirestore();
   } catch (err) {
-    console.error('Failed to initialize database:', err);
+    console.error('Failed to initialize Firestore:', err);
   }
 
   const app = express();

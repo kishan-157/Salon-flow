@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { Request, Response, NextFunction } from 'express';
-import { db } from './db.ts';
+import { firestoreDb } from './db.ts';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'glamhub_super_secret_jwt_sign_key_9941';
 
@@ -69,43 +69,38 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
   next();
 }
 
-export function requireSuperAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function requireSuperAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const user = extractAuth(req);
   if (!user) {
     return res.status(401).json({ error: 'Authentication required. Please log in.' });
   }
   if (user.role !== 'superadmin') {
-    // Log violation
-    db.prepare(`
-      INSERT INTO audit_logs (id, tenant_id, user_id, action, details, ip_address, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      'log_' + Date.now() + Math.random().toString(36).substring(2, 6),
-      user.tenantId,
-      user.userId,
-      'UNAUTHORIZED_SUPERADMIN_ACCESS',
-      `User ${user.email} attempted to execute superadmin action: ${req.method} ${req.originalUrl}`,
-      req.ip || 'unknown',
-      new Date().toISOString()
-    );
+    const logId = 'log_' + Date.now() + Math.random().toString(36).substring(2, 6);
+    try {
+      await firestoreDb.collection('audit_logs').doc(logId).set({
+        id: logId,
+        tenant_id: user.tenantId || null,
+        user_id: user.userId,
+        action: 'UNAUTHORIZED_SUPERADMIN_ACCESS',
+        details: `User ${user.email} attempted to execute superadmin action: ${req.method} ${req.originalUrl}`,
+        ip_address: req.ip || 'unknown',
+        created_at: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('Failed to log audit entry:', err);
+    }
     return res.status(403).json({ error: 'Access denied: Super Admin privileges required.' });
   }
   req.user = user;
   next();
 }
 
-/**
- * Middleware ensuring the authenticated user is authorized to manage the requested tenant.
- * SuperAdmin has universal access.
- * Salon Owner can ONLY manage their assigned tenantId.
- */
-export function requireTenantAccess(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function requireTenantAccess(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const user = extractAuth(req);
   if (!user) {
     return res.status(401).json({ error: 'Authentication required. Please log in.' });
   }
 
-  // Resolve requested tenant ID from route params or body
   const targetTenantId = req.params.tenantId || req.body?.tenant_id || (req.query?.tenant_id as string);
 
   if (user.role === 'superadmin') {
@@ -118,19 +113,20 @@ export function requireTenantAccess(req: AuthenticatedRequest, res: Response, ne
     return next();
   }
 
-  // Security breach attempt: Log and reject immediately
-  db.prepare(`
-    INSERT INTO audit_logs (id, tenant_id, user_id, action, details, ip_address, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    'log_' + Date.now() + Math.random().toString(36).substring(2, 6),
-    targetTenantId || null,
-    user.userId,
-    'CROSS_TENANT_ACCESS_DENIED',
-    `User ${user.email} (Tenant: ${user.tenantId}) attempted to access Tenant: ${targetTenantId} on ${req.method} ${req.originalUrl}`,
-    req.ip || 'unknown',
-    new Date().toISOString()
-  );
+  const logId = 'log_' + Date.now() + Math.random().toString(36).substring(2, 6);
+  try {
+    await firestoreDb.collection('audit_logs').doc(logId).set({
+      id: logId,
+      tenant_id: targetTenantId || null,
+      user_id: user.userId,
+      action: 'CROSS_TENANT_ACCESS_DENIED',
+      details: `User ${user.email} (Tenant: ${user.tenantId}) attempted to access Tenant: ${targetTenantId} on ${req.method} ${req.originalUrl}`,
+      ip_address: req.ip || 'unknown',
+      created_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Failed to log audit entry:', err);
+  }
 
   return res.status(403).json({
     error: 'Access denied: You do not have permission to access or modify data for another salon business.',
