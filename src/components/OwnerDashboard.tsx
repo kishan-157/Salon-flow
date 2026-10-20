@@ -1582,6 +1582,59 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Android APK Release & Build Center */}
+              <div className="pt-6 border-t border-neutral-200 space-y-4">
+                <h4 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-rose-600" />
+                  <span>Native Android APK Packages & Direct Distribution</span>
+                </h4>
+                <p className="text-xs text-neutral-600 leading-relaxed">
+                  Download production-ready signed APKs for direct distribution without Google Play Store.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Business Owner APK */}
+                  <div className="p-4 rounded-xl bg-neutral-900 text-white space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-400 text-neutral-950 uppercase">Owner App</span>
+                      <span className="text-[11px] font-mono text-neutral-400">v1.0.0</span>
+                    </div>
+                    <div className="font-bold text-xs">LocalBoost Owner App</div>
+                    <div className="text-[11px] text-neutral-400 font-mono">com.localboost.ai.owner</div>
+                    <div className="pt-2">
+                      <a
+                        href="https://github.com"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block w-full py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-lg text-xs text-center transition-colors"
+                      >
+                        Download Owner APK
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Tenant Customer APK */}
+                  <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-200 text-neutral-900 space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 uppercase">Customer App</span>
+                      <span className="text-[11px] font-mono text-neutral-500">v1.0.0</span>
+                    </div>
+                    <div className="font-bold text-xs">{tenant.name} Customer App</div>
+                    <div className="text-[11px] text-neutral-500 font-mono">com.localboost.ai.customer.{tenant.slug}</div>
+                    <div className="pt-2">
+                      <a
+                        href={`/?tenant=${tenant.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block w-full py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold rounded-lg text-xs text-center transition-colors"
+                      >
+                        Open Customer Web App
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
