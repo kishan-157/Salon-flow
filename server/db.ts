@@ -35,7 +35,7 @@ if (!adminSDK.apps || !adminSDK.apps.length) {
 
 let dbInstance: any = null;
 try {
-  dbInstance = getFirestore(adminSDK, firebaseConfig.firestoreDatabaseId || '(default)');
+  dbInstance = adminSDK.firestore();
 } catch (e) {
   try {
     dbInstance = getFirestore(adminSDK);
