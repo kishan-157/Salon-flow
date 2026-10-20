@@ -1,0 +1,8 @@
+{
+  "name": "GlamHub Multi-Tenant Beauty Parlour SaaS",
+  "description": "Multi-tenant beauty parlour management SaaS platform with isolated tenant domains, appointment booking engine, owner dashboards, and centralized super admin subscription management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

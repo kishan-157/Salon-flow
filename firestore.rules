@@ -1,0 +1,398 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================
+    // Hardened Global Primitives
+    // =========================================================
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'ladanikishan8@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isParentTenantOwner(tenantId) {
+      return exists(/databases/$(database)/documents/tenants/$(tenantId)) &&
+        get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid;
+    }
+
+    // =========================================================
+    // Validation Blueprints (Anti-Update-Gap)
+    // =========================================================
+
+    function isValidAdminRecord(data) {
+      return data.keys().hasAll(['adminId', 'email', 'createdAt']) &&
+        data.keys().hasOnly(['adminId', 'email', 'createdAt']) &&
+        data.adminId is string && data.adminId.size() >= 1 && data.adminId.size() <= 128 && data.adminId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 150 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidTenantDoc(data) {
+      return data.keys().hasAll([
+          'tenantId', 'slug', 'name', 'ownerId', 'status', 'planId', 'themeId',
+          'tagline', 'heroTitle', 'heroSubtitle', 'heroImageUrl', 'aboutImageUrl', 'logoUrl',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'tenantId', 'slug', 'name', 'ownerId', 'status', 'planId', 'themeId',
+          'tagline', 'heroTitle', 'heroSubtitle', 'heroImageUrl', 'aboutImageUrl', 'logoUrl',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.tenantId is string && data.tenantId.size() >= 1 && data.tenantId.size() <= 128 && data.tenantId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.slug is string && data.slug.size() >= 1 && data.slug.size() <= 64 && data.slug.matches('^[a-z0-9\\-]+$') &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.status is string && data.status.size() >= 6 && data.status.size() <= 12 &&
+        (data.status == 'active' || data.status == 'suspended' || data.status == 'archived') &&
+        data.planId is string && data.planId.size() >= 1 && data.planId.size() <= 40 &&
+        data.themeId is string && data.themeId.size() >= 10 && data.themeId.size() <= 20 &&
+        (
+          data.themeId == 'royal-gold' ||
+          data.themeId == 'rose-elegance' ||
+          data.themeId == 'bridal-royale' ||
+          data.themeId == 'emerald-luxe' ||
+          data.themeId == 'mocha-signature'
+        ) &&
+        data.tagline is string && data.tagline.size() <= 250 &&
+        data.heroTitle is string && data.heroTitle.size() <= 200 &&
+        data.heroSubtitle is string && data.heroSubtitle.size() <= 500 &&
+        data.heroImageUrl is string && data.heroImageUrl.size() <= 500000 &&
+        data.aboutImageUrl is string && data.aboutImageUrl.size() <= 500000 &&
+        data.logoUrl is string && data.logoUrl.size() <= 500000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidServiceDoc(data) {
+      return data.keys().hasAll([
+          'serviceId', 'tenantId', 'ownerId', 'category', 'name',
+          'description', 'price', 'durationMinutes', 'isActive',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'serviceId', 'tenantId', 'ownerId', 'category', 'name',
+          'description', 'price', 'durationMinutes', 'isActive',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.serviceId is string && data.serviceId.size() >= 1 && data.serviceId.size() <= 128 && data.serviceId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.tenantId is string && data.tenantId.size() >= 1 && data.tenantId.size() <= 128 && data.tenantId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 80 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        data.description is string && data.description.size() <= 600 &&
+        data.price is number && data.price >= 0 && data.price <= 1000000 &&
+        data.durationMinutes is number && data.durationMinutes >= 5 && data.durationMinutes <= 1440 &&
+        data.isActive is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidGalleryDoc(data) {
+      return data.keys().hasAll([
+          'itemId', 'tenantId', 'ownerId', 'title', 'category',
+          'imageUrl', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'itemId', 'tenantId', 'ownerId', 'title', 'category',
+          'imageUrl', 'createdAt', 'updatedAt'
+        ]) &&
+        data.itemId is string && data.itemId.size() >= 1 && data.itemId.size() <= 128 && data.itemId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.tenantId is string && data.tenantId.size() >= 1 && data.tenantId.size() <= 128 && data.tenantId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 80 &&
+        data.imageUrl is string && data.imageUrl.size() >= 1 && data.imageUrl.size() <= 500000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidBookingDoc(data) {
+      return data.keys().hasAll([
+          'bookingId', 'tenantId', 'ownerId', 'serviceId',
+          'customerName', 'customerPhone', 'customerEmail',
+          'appointmentDate', 'appointmentTime', 'status', 'customerNotes',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'bookingId', 'tenantId', 'ownerId', 'serviceId',
+          'customerName', 'customerPhone', 'customerEmail',
+          'appointmentDate', 'appointmentTime', 'status', 'customerNotes',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.bookingId is string && data.bookingId.size() >= 1 && data.bookingId.size() <= 128 && data.bookingId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.tenantId is string && data.tenantId.size() >= 1 && data.tenantId.size() <= 128 && data.tenantId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.serviceId is string && data.serviceId.size() >= 1 && data.serviceId.size() <= 128 && data.serviceId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120 &&
+        data.customerPhone is string && data.customerPhone.size() >= 7 && data.customerPhone.size() <= 30 &&
+        data.customerEmail is string && data.customerEmail.size() <= 150 &&
+        data.appointmentDate is string && data.appointmentDate.size() == 10 && data.appointmentDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        data.appointmentTime is string && data.appointmentTime.size() == 5 && data.appointmentTime.matches('^[0-9]{2}:[0-9]{2}$') &&
+        data.status is string && data.status.size() >= 7 && data.status.size() <= 12 &&
+        (
+          data.status == 'pending' ||
+          data.status == 'confirmed' ||
+          data.status == 'completed' ||
+          data.status == 'cancelled'
+        ) &&
+        data.customerNotes is string && data.customerNotes.size() <= 500 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // =========================================================
+    // 1. /admins/{adminId}
+    // =========================================================
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
+      allow list: if false;
+      allow create: if isSignedIn() && isValidId(adminId) && isValidAdminRecord(incoming()) &&
+        incoming().adminId == adminId &&
+        incoming().createdAt == request.time &&
+        isAdmin();
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(adminId) && isAdmin();
+    }
+
+    // =========================================================
+    // 2. /tenants/{tenantId}
+    // =========================================================
+    match /tenants/{tenantId} {
+      allow get: if isValidId(tenantId) && (
+        existing().status == 'active' ||
+        (isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin()))
+      );
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+        isValidId(tenantId) &&
+        isValidTenantDoc(incoming()) &&
+        incoming().tenantId == tenantId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isSignedIn() &&
+        isValidId(tenantId) &&
+        isValidTenantDoc(incoming()) &&
+        incoming().tenantId == existing().tenantId &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          // Action 1: Owner Branding & Theme Customization
+          (
+            existing().ownerId == request.auth.uid &&
+            incoming().status == existing().status &&
+            incoming().planId == existing().planId &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'name', 'themeId', 'tagline', 'heroTitle', 'heroSubtitle',
+              'heroImageUrl', 'aboutImageUrl', 'logoUrl', 'updatedAt'
+            ])
+          ) ||
+          // Action 2: Super Admin Subscription & Status Control
+          (
+            isAdmin() &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'name', 'status', 'planId', 'themeId', 'tagline',
+              'heroTitle', 'heroSubtitle', 'heroImageUrl', 'aboutImageUrl',
+              'logoUrl', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isSignedIn() && isValidId(tenantId) && isAdmin();
+
+      // =======================================================
+      // 3. /tenants/{tenantId}/services/{serviceId}
+      // =======================================================
+      match /services/{serviceId} {
+        allow get: if isValidId(tenantId) && isValidId(serviceId) && (
+          existing().isActive == true ||
+          (isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin()))
+        );
+        allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+
+        allow create: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(serviceId) &&
+          isValidServiceDoc(incoming()) &&
+          incoming().serviceId == serviceId &&
+          incoming().tenantId == tenantId &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          (isParentTenantOwner(tenantId) || isAdmin());
+
+        allow update: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(serviceId) &&
+          isValidServiceDoc(incoming()) &&
+          incoming().serviceId == existing().serviceId &&
+          incoming().tenantId == existing().tenantId &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          (
+            (
+              existing().ownerId == request.auth.uid &&
+              isParentTenantOwner(tenantId) &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'category', 'name', 'description', 'price',
+                'durationMinutes', 'isActive', 'updatedAt'
+              ])
+            ) ||
+            (
+              isAdmin() &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'category', 'name', 'description', 'price',
+                'durationMinutes', 'isActive', 'updatedAt'
+              ])
+            )
+          );
+
+        allow delete: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(serviceId) &&
+          ((existing().ownerId == request.auth.uid && isParentTenantOwner(tenantId)) || isAdmin());
+      }
+
+      // =======================================================
+      // 4. /tenants/{tenantId}/gallery/{itemId}
+      // =======================================================
+      match /gallery/{itemId} {
+        allow get: if isValidId(tenantId) && isValidId(itemId) && (
+          isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin())
+        );
+        allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+
+        allow create: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(itemId) &&
+          isValidGalleryDoc(incoming()) &&
+          incoming().itemId == itemId &&
+          incoming().tenantId == tenantId &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          (isParentTenantOwner(tenantId) || isAdmin());
+
+        allow update: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(itemId) &&
+          isValidGalleryDoc(incoming()) &&
+          incoming().itemId == existing().itemId &&
+          incoming().tenantId == existing().tenantId &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          (
+            (
+              existing().ownerId == request.auth.uid &&
+              isParentTenantOwner(tenantId) &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'title', 'category', 'imageUrl', 'updatedAt'
+              ])
+            ) ||
+            (
+              isAdmin() &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'title', 'category', 'imageUrl', 'updatedAt'
+              ])
+            )
+          );
+
+        allow delete: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(itemId) &&
+          ((existing().ownerId == request.auth.uid && isParentTenantOwner(tenantId)) || isAdmin());
+      }
+
+      // =======================================================
+      // 5. /tenants/{tenantId}/bookings/{bookingId} (PII Isolated)
+      // =======================================================
+      match /bookings/{bookingId} {
+        // Strict PII Isolation: only tenant owner or system admin may read booking PII
+        allow get: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(bookingId) &&
+          ((existing().ownerId == request.auth.uid && isParentTenantOwner(tenantId)) || isAdmin());
+
+        // Secure List Enforcer without O(N) get() calls
+        allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+
+        allow create: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(bookingId) &&
+          isValidBookingDoc(incoming()) &&
+          incoming().bookingId == bookingId &&
+          incoming().tenantId == tenantId &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/tenants/$(tenantId)/services/$(incoming().serviceId)) &&
+          (isParentTenantOwner(tenantId) || isAdmin());
+
+        allow update: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(bookingId) &&
+          isValidBookingDoc(incoming()) &&
+          incoming().bookingId == existing().bookingId &&
+          incoming().tenantId == existing().tenantId &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().serviceId == existing().serviceId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          (
+            // Action 1: Owner Status Transition (Locked once terminal 'completed' or 'cancelled')
+            (
+              existing().ownerId == request.auth.uid &&
+              isParentTenantOwner(tenantId) &&
+              existing().status != 'completed' &&
+              existing().status != 'cancelled' &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'status', 'customerNotes', 'updatedAt'
+              ])
+            ) ||
+            // Action 2: Admin Override
+            (
+              isAdmin() &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'status', 'customerNotes', 'updatedAt'
+              ])
+            )
+          );
+
+        allow delete: if isSignedIn() &&
+          isValidId(tenantId) &&
+          isValidId(bookingId) &&
+          isAdmin();
+      }
+    }
+  }
+}

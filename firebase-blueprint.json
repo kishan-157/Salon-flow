@@ -1,0 +1,422 @@
+{
+  "entities": {
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted administrator membership document.",
+      "type": "object",
+      "properties": {
+        "adminId": {
+          "type": "string",
+          "description": "UID of the administrator.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified email address of the administrator.",
+          "minLength": 3,
+          "maxLength": 150
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when admin record was created."
+        }
+      },
+      "required": ["adminId", "email", "createdAt"]
+    },
+    "TenantDoc": {
+      "title": "TenantDoc",
+      "description": "Multi-tenant beauty parlour configuration and branding document.",
+      "type": "object",
+      "properties": {
+        "tenantId": {
+          "type": "string",
+          "description": "Immutable tenant identifier.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "slug": {
+          "type": "string",
+          "description": "Unique subdomain slug for the beauty parlour.",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the beauty parlour.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the salon owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "status": {
+          "type": "string",
+          "description": "Operational status of the tenant account.",
+          "enum": ["active", "suspended", "archived"],
+          "minLength": 6,
+          "maxLength": 12
+        },
+        "planId": {
+          "type": "string",
+          "description": "Subscription tier identifier.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "themeId": {
+          "type": "string",
+          "description": "Selected Royal theme identifier.",
+          "enum": ["royal-gold", "rose-elegance", "bridal-royale", "emerald-luxe", "mocha-signature"],
+          "minLength": 10,
+          "maxLength": 20
+        },
+        "tagline": {
+          "type": "string",
+          "description": "Brand tagline displayed in the header and hero.",
+          "minLength": 0,
+          "maxLength": 250
+        },
+        "heroTitle": {
+          "type": "string",
+          "description": "Primary headline on the public website.",
+          "minLength": 0,
+          "maxLength": 200
+        },
+        "heroSubtitle": {
+          "type": "string",
+          "description": "Subheadline on the public website.",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "heroImageUrl": {
+          "type": "string",
+          "description": "Hero banner image URL or data URI.",
+          "minLength": 0,
+          "maxLength": 500000
+        },
+        "aboutImageUrl": {
+          "type": "string",
+          "description": "About section portrait URL or data URI.",
+          "minLength": 0,
+          "maxLength": 500000
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "Brand crest or logo URL or data URI.",
+          "minLength": 0,
+          "maxLength": 500000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "tenantId",
+        "slug",
+        "name",
+        "ownerId",
+        "status",
+        "planId",
+        "themeId",
+        "tagline",
+        "heroTitle",
+        "heroSubtitle",
+        "heroImageUrl",
+        "aboutImageUrl",
+        "logoUrl",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ServiceDoc": {
+      "title": "ServiceDoc",
+      "description": "Salon service menu item belonging to a specific tenant.",
+      "type": "object",
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "description": "Unique service ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "tenantId": {
+          "type": "string",
+          "description": "Parent tenant ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the salon owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "category": {
+          "type": "string",
+          "description": "Service category name.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "name": {
+          "type": "string",
+          "description": "Service title.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed service description.",
+          "minLength": 0,
+          "maxLength": 600
+        },
+        "price": {
+          "type": "number",
+          "description": "Price in INR."
+        },
+        "durationMinutes": {
+          "type": "number",
+          "description": "Duration in minutes."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether the service is visible on the public menu."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "serviceId",
+        "tenantId",
+        "ownerId",
+        "category",
+        "name",
+        "description",
+        "price",
+        "durationMinutes",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "GalleryDoc": {
+      "title": "GalleryDoc",
+      "description": "Salon portfolio gallery photo item belonging to a specific tenant.",
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "description": "Unique gallery item ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "tenantId": {
+          "type": "string",
+          "description": "Parent tenant ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the salon owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Caption or title of the portfolio look.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "description": "Portfolio category tag.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Photo URL or base64 data URI.",
+          "minLength": 1,
+          "maxLength": 500000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "itemId",
+        "tenantId",
+        "ownerId",
+        "title",
+        "category",
+        "imageUrl",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BookingDoc": {
+      "title": "BookingDoc",
+      "description": "Customer appointment booking record with PII isolated to the tenant owner and admin.",
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "type": "string",
+          "description": "Unique booking ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "tenantId": {
+          "type": "string",
+          "description": "Parent tenant ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the tenant owner for strict query isolation.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "Booked service ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Customer full name (PII).",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "customerPhone": {
+          "type": "string",
+          "description": "Customer phone number (PII).",
+          "minLength": 7,
+          "maxLength": 30
+        },
+        "customerEmail": {
+          "type": "string",
+          "description": "Customer email address (PII).",
+          "minLength": 0,
+          "maxLength": 150
+        },
+        "appointmentDate": {
+          "type": "string",
+          "description": "Appointment date in YYYY-MM-DD format.",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "appointmentTime": {
+          "type": "string",
+          "description": "Appointment start time in HH:MM format.",
+          "minLength": 5,
+          "maxLength": 5,
+          "pattern": "^[0-9]{2}:[0-9]{2}$"
+        },
+        "status": {
+          "type": "string",
+          "description": "Lifecycle status of the booking.",
+          "enum": ["pending", "confirmed", "completed", "cancelled"],
+          "minLength": 7,
+          "maxLength": 12
+        },
+        "customerNotes": {
+          "type": "string",
+          "description": "Special requests from customer.",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "bookingId",
+        "tenantId",
+        "ownerId",
+        "serviceId",
+        "customerName",
+        "customerPhone",
+        "customerEmail",
+        "appointmentDate",
+        "appointmentTime",
+        "status",
+        "customerNotes",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "System administrator lookup collection."
+    },
+    "/tenants/{tenantId}": {
+      "schema": { "$ref": "#/entities/TenantDoc" },
+      "description": "Top-level multi-tenant salon configuration documents."
+    },
+    "/tenants/{tenantId}/services/{serviceId}": {
+      "schema": { "$ref": "#/entities/ServiceDoc" },
+      "description": "Tenant-isolated salon service menu documents."
+    },
+    "/tenants/{tenantId}/gallery/{itemId}": {
+      "schema": { "$ref": "#/entities/GalleryDoc" },
+      "description": "Tenant-isolated salon lookbook gallery documents."
+    },
+    "/tenants/{tenantId}/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/BookingDoc" },
+      "description": "Tenant-isolated appointment bookings containing protected customer PII."
+    }
+  }
+}
